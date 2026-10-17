@@ -139,7 +139,29 @@ async def deepseek_chat(
 
 
 # ── ASGI 调度 ─────────────────────────────────────────────────────────────────
+_mcp_app = None
+
+
+def _get_mcp_app():
+    """返回全局唯一的 MCP Starlette 应用。
+
+    必须只创建一次：streamable_http_app() 每次调用都会新建一个
+    StreamableHTTPSessionManager，而 manager 内部的 task group 依赖 Starlette
+    的 lifespan 启动，且 run() 生命周期内只能调用一次。
+    """
+    global _mcp_app
+    if _mcp_app is None:
+        _mcp_app = mcp.streamable_http_app()
+    return _mcp_app
+
+
 async def dispatch(scope, receive, send):
+    # lifespan 必须转发给 Starlette 应用，由它执行 session_manager.run()，
+    # 否则处理请求时会抛 "Task group is not initialized. Make sure to use run()."
+    if scope["type"] == "lifespan":
+        await _get_mcp_app()(scope, receive, send)
+        return
+
     if scope["type"] == "http":
         path = scope["path"]
         method = scope["method"]
@@ -158,8 +180,7 @@ async def dispatch(scope, receive, send):
             response = await _proxy_other(request)
         else:
             # 其他请求交给 MCP 处理
-            mcp_app = mcp.streamable_http_app()
-            await mcp_app(scope, receive, send)
+            await _get_mcp_app()(scope, receive, send)
             return
 
         await response(scope, receive, send)
