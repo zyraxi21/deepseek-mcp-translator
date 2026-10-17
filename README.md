@@ -32,10 +32,28 @@ DEEPSEEK_MODEL=deepseek-v4-pro
 
 ### 3. 启动服务器
 
-双击 `run_http.bat`，或在终端运行：
+右键 `run_http.ps1` 选择“使用 PowerShell 运行”，或在终端执行：
 
-```bash
-python server.py --http
+```powershell
+.\run_http.ps1
+```
+
+如果提示“因为在此系统上禁止运行脚本”，先放宽一次当前用户的执行策略：
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+也可以只对这一次调用绕过策略：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_http.ps1
+```
+
+端口被占用时用 `-Port` 换一个，不传则沿用默认的 8765：
+
+```powershell
+.\run_http.ps1 -Port 8766
 ```
 
 看到以下输出表示启动成功：
@@ -91,17 +109,21 @@ AI Provider 的 Base URL 没有指向本地代理，还是直连的 DeepSeek。�
 
 **Q: 提示 `UNAVAILABLE: io exception`？**
 
-服务器没启动。双击 `run_http.bat` 启动。
+服务器没启动。运行 `run_http.ps1` 启动。
+
+**Q: 提示“因为在此系统上禁止运行脚本”？**
+
+PowerShell 执行策略拦下了脚本。按“启动服务器”一节的说明放宽策略，或用 `powershell -ExecutionPolicy Bypass -File .\run_http.ps1` 单次绕过。
 
 **Q: 改了 `.env` 需要重启吗？**
 
-需要。关掉 `run_http.bat` 窗口，重新打开。
+需要。关掉 `run_http.ps1` 窗口，重新打开。
 
 ## 文件结构
 
 ```
 ├── server.py          # 代理 + MCP 服务器
-├── run_http.bat       # Windows 一键启动脚本
+├── run_http.ps1       # Windows 一键启动脚本
 ├── mcp-config.json    # Android Studio MCP 配置（导入用）
 ├── requirements.txt   # Python 依赖
 ├── .env.example       # 配置模板
